@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="tr" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeFlow Control Center - Admin Panel</title>
+    <!-- Tailwind CSS & CDN Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 900: '#1e3a8a' },
+                        darkbg: '#0f172a',
+                        darkcard: '#1e293b'
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.1"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.2s, color 0.2s; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #334155; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-darkbg text-slate-800 dark:text-slate-100 h-screen overflow-hidden flex flex-col">
+
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- AUTH GATEWAY (Sadece Süpervizör Girişi) -->
+    <div id="admin-auth-screen" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-40 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-darkcard border border-slate-200 dark:border-slate-700 w-full max-w-md rounded-2xl p-8 shadow-2xl space-y-6">
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 bg-red-600 rounded-xl mx-auto flex items-center justify-center text-white text-xl shadow-lg">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2 class="text-2xl font-bold tracking-tight">Yönetici Girişi</h2>
+                <p class="text-xs text-slate-500">TradeFlow Süpervizör Konsolu</p>
+            </div>
+            
+            <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">E-Posta</label>
+                    <input id="admin-email" type="email" required placeholder="admin@makonbi.com" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:border-red-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Şifre</label>
+                    <input id="admin-password" type="password" required placeholder="••••••••" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:border-red-600">
+                </div>
+                <button type="submit" id="btn-login" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-md transition-all text-sm">Doğrula ve Panele Gir</button>
+            </form>
+            <div class="text-center">
+                <a href="../" class="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"><i class="fa-solid fa-arrow-left"></i> Ana Platforma Dön</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN ADMIN PANEL LAYOUT -->
+    <div id="admin-dashboard-layout" class="flex-1 flex overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white dark:bg-darkcard border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0">
+            <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800 gap-3">
+                <div class="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white"><i class="fa-solid fa-lock"></i></div>
+                <div>
+                    <h1 class="font-bold text-sm leading-tight text-slate-900 dark:text-white">TradeFlow HQ</h1>
+                    <span class="text-[10px] font-mono text-red-500 uppercase font-bold tracking-wider">SuperAdmin v1.0</span>
+                </div>
+            </div>
+
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+                <button onclick="switchTab('overview')" id="tab-overview" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold bg-red-600 text-white transition-all">
+                    <i class="fa-solid fa-chart-line w-4"></i> Genel Bakış & Metrikler
+                </button>
+                <button onclick="switchTab('deals')" id="tab-deals" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                    <i class="fa-solid fa-boxes-stacked w-4"></i> İlan & Teklif Yönetimi
+                </button>
+                <button onclick="switchTab('system')" id="tab-system" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                    <i class="fa-solid fa-server w-4"></i> Veritabanı & Cloud Sağlığı
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+                <a href="../" target="_blank" class="w-full flex items-center justify-center gap-2 py-2 px-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Canlı Uygulamayı Aç
+                </a>
+            </div>
+        </aside>
+
+        <!-- Right Content Wrapper -->
+        <div class="flex-1 flex flex-col min-w-0">
+            <!-- Topbar -->
+            <header class="h-16 bg-white dark:bg-darkcard border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-400 uppercase">Durum:</span>
+                    <span class="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> CANLI SİSTEM BAĞLI
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300"><i id="theme-icon" class="fa-solid fa-moon text-xs"></i></button>
+                    <div class="flex items-center gap-3 border-l border-slate-200 dark:border-slate-700 pl-4">
+                        <span id="admin-user-name" class="text-xs font-bold text-slate-700 dark:text-slate-200">Süpervizör</span>
+                        <button onclick="adminLogout()" class="text-xs text-red-500 font-bold hover:underline">Çıkış</button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dynamic View -->
+            <main class="flex-1 overflow-y-auto p-6 space-y-6">
+                <!-- 1. OVERVIEW VIEW -->
+                <div id="view-overview" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="bg-white dark:bg-darkcard p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">Toplam İlan Havuzu</span>
+                            <h3 id="stat-total-listings" class="text-2xl font-bold mt-1 text-slate-900 dark:text-white">0</h3>
+                        </div>
+                        <div class="bg-white dark:bg-darkcard p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <span class="text-[10px] font-bold text-emerald-500 uppercase">Arz İlanları (Satış)</span>
+                            <h3 id="stat-supply" class="text-2xl font-bold mt-1 text-emerald-600">0</h3>
+                        </div>
+                        <div class="bg-white dark:bg-darkcard p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <span class="text-[10px] font-bold text-blue-500 uppercase">Talep İlanları (Alım)</span>
+                            <h3 id="stat-demand" class="text-2xl font-bold mt-1 text-blue-600">0</h3>
+                        </div>
+                        <div class="bg-white dark:bg-darkcard p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <span class="text-[10px] font-bold text-amber-500 uppercase">Dolaşımdaki Teklifler</span>
+                            <h3 id="stat-offers" class="text-2xl font-bold mt-1 text-amber-600">0</h3>
+                        </div>
+                    </div>
+
+                    <!-- Quick Action Bar -->
+                    <div class="bg-white dark:bg-darkcard p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                        <div>
+                            <h3 class="font-bold text-base">Hızlı Veritabanı Kontrolü</h3>
+                            <p class="text-xs text-slate-400">Veritabanındaki tüm satırları anlık tara ve senkronize et</p>
+                        </div>
+                        <button onclick="loadAdminData()" class="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-black font-bold text-xs rounded-xl hover:opacity-90 transition-opacity flex items-center gap-2">
+                            <i class="fa-solid fa-rotate"></i> Yenile
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. DEALS MANAGEMENT VIEW -->
+                <div id="view-deals" class="hidden space-y-4">
+                    <div class="bg-white dark:bg-darkcard rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                            <h3 class="font-bold text-sm">Veritabanı Satırları (Tüm Dokümanlar)</h3>
+                            <span id="record-count" class="text-xs font-mono text-slate-400">0 Kayıt</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead class="bg-slate-50 dark:bg-slate-900/50 text-slate-400 uppercase font-semibold border-b border-slate-200 dark:border-slate-800">
+                                    <tr>
+                                        <th class="p-4">DOKÜMAN ID</th>
+                                        <th class="p-4">KOD / HEDEF</th>
+                                        <th class="p-4">ÜRÜN / AÇIKLAMA</th>
+                                        <th class="p-4">TARAF / KULLANICI</th>
+                                        <th class="p-4">HACİM</th>
+                                        <th class="p-4">AŞAMA (STAGE)</th>
+                                        <th class="p-4 text-right">AKSİYON</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-table-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. SYSTEM & HEALTH VIEW -->
+                <div id="view-system" class="hidden space-y-4">
+                    <div class="bg-white dark:bg-darkcard p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+                        <h3 class="font-bold text-sm">Bağlı Servis Konfigürasyonları</h3>
+                        <div class="grid grid-cols-2 gap-4 text-xs font-mono">
+                            <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                <span class="text-slate-400 block mb-1">APPWRITE_ENDPOINT</span>
+                                <span class="text-blue-500 font-bold">https://fra.cloud.appwrite.io/v1</span>
+                            </div>
+                            <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                <span class="text-slate-400 block mb-1">COLLECTION_ID</span>
+                                <span class="text-blue-500 font-bold">deals</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const APPWRITE_ENDPOINT = 'https://fra.cloud.appwrite.io/v1';
+        const APPWRITE_PROJECT_ID = '6a8a912a0020db9368df';
+        const DB_ID = '6a8a93d70014aedaba8e';
+        const COLLECTION_ID = 'deals';
+
+        const { Client, Account, Databases } = Appwrite;
+        const client = new Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID);
+        const account = new Account(client);
+        const databases = new Databases(client);
+
+        let allRecords = [];
+
+        window.showToast = (msg, type = 'info') => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            let color = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-red-600' : 'bg-slate-900';
+            toast.className = `px-4 py-3 rounded-xl shadow-xl text-xs font-semibold text-white flex items-center gap-2 transition-all ${color}`;
+            toast.innerHTML = `<i class="fa-solid fa-bell"></i><span>${msg}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        };
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            document.getElementById('theme-icon').className = isDark ? 'fa-solid fa-sun text-amber-500 text-xs' : 'fa-solid fa-moon text-slate-600 text-xs';
+        }
+
+        async function verifySupervisorSession() {
+            try {
+                const user = await account.get();
+                if (user.labels && user.labels.includes('supervisor')) {
+                    document.getElementById('admin-auth-screen').classList.add('hidden');
+                    document.getElementById('admin-user-name').innerText = user.name || user.email;
+                    loadAdminData();
+                    initRealtimeAdmin();
+                } else {
+                    document.getElementById('admin-auth-screen').classList.remove('hidden');
+                    showToast('Yetkisiz hesap! Bu panele sadece Süpervizörler girebilir.', 'error');
+                }
+            } catch(e) {
+                document.getElementById('admin-auth-screen').classList.remove('hidden');
+            }
+        }
+
+        window.handleAdminLogin = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-login');
+            btn.disabled = true; btn.innerText = "Doğrulanıyor...";
+            const email = document.getElementById('admin-email').value;
+            const pass = document.getElementById('admin-password').value;
+
+            try {
+                try { await account.deleteSession('current'); } catch(err){}
+                await account.createEmailPasswordSession(email, pass);
+                const user = await account.get();
+                if (user.labels && user.labels.includes('supervisor')) {
+                    showToast('Giriş başarılı!', 'success');
+                    document.getElementById('admin-auth-screen').classList.add('hidden');
+                    document.getElementById('admin-user-name').innerText = user.name || user.email;
+                    loadAdminData();
+                    initRealtimeAdmin();
+                } else {
+                    await account.deleteSession('current');
+                    showToast('Yetkisiz Giriş: Bu hesap Süpervizör etiketine sahip değil!', 'error');
+                }
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                btn.disabled = false; btn.innerText = "Doğrula ve Panele Gir";
+            }
+        };
+
+        window.adminLogout = async () => {
+            try { await account.deleteSession('current'); location.reload(); } catch(e){}
+        };
+
+        window.switchTab = (tabName) => {
+            ['overview', 'deals', 'system'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all";
+            });
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabName}`).className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold bg-red-600 text-white transition-all";
+        };
+
+        async function loadAdminData() {
+            try {
+                const res = await databases.listDocuments(DB_ID, COLLECTION_ID);
+                allRecords = res.documents;
+                renderMetrics();
+                renderTable();
+            } catch(e) {
+                showToast('Veri çekme hatası: ' + e.message, 'error');
+            }
+        }
+
+        function renderMetrics() {
+            const supply = allRecords.filter(d => d.stage && d.stage.includes('SATIŞ')).length;
+            const demand = allRecords.filter(d => d.stage && d.stage.includes('ALIM')).length;
+            const offers = allRecords.filter(d => d.stage === 'GELEN TEKLİF').length;
+
+            document.getElementById('stat-total-listings').innerText = supply + demand;
+            document.getElementById('stat-supply').innerText = supply;
+            document.getElementById('stat-demand').innerText = demand;
+            document.getElementById('stat-offers').innerText = offers;
+            document.getElementById('record-count').innerText = `${allRecords.length} Doküman`;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('admin-table-body');
+            if (allRecords.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400">Veritabanı boş.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = allRecords.map(d => {
+                const isOffer = d.stage === 'GELEN TEKLİF';
+                return `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td class="p-4 font-mono text-[10px] text-slate-400">${d.$id}</td>
+                    <td class="p-4 font-mono font-bold ${isOffer ? 'text-amber-500' : 'text-blue-500'}">${d.code}</td>
+                    <td class="p-4 font-semibold text-slate-900 dark:text-white max-w-[200px] truncate">${d.product}</td>
+                    <td class="p-4 text-slate-500 truncate max-w-[150px]">${d.party}</td>
+                    <td class="p-4 font-bold text-slate-700 dark:text-slate-300">${d.volume || '-'}</td>
+                    <td class="p-4"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${isOffer ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}">${d.stage}</span></td>
+                    <td class="p-4 text-right">
+                        <button onclick="adminDeleteRecord('${d.$id}')" class="px-2.5 py-1 bg-red-50 text-red-600 dark:bg-red-950/40 rounded-lg font-bold hover:bg-red-600 hover:text-white transition-all text-[11px]">Sil</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        window.adminDeleteRecord = async (docId) => {
+            if (!confirm("Bu kaydı kalıcı olarak silmek istediğinize emin misiniz?")) return;
+            try {
+                await databases.deleteDocument(DB_ID, COLLECTION_ID, docId);
+                showToast('Kayıt silindi!', 'success');
+                loadAdminData();
+            } catch(e) {
+                showToast('Hata: ' + e.message, 'error');
+            }
+        };
+
+        function initRealtimeAdmin() {
+            client.subscribe(`databases.${DB_ID}.collections.${COLLECTION_ID}.documents`, (response) => {
+                loadAdminData();
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", verifySupervisorSession);
+    </script>
+</body>
+</html>

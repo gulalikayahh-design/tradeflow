@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="tr" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeFlow SaaS - v1.9.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        apple: { bg: '#f5f5f7', card: '#ffffff', text: '#1d1d1f', darkbg: '#000000', darkcard: '#1c1c1e', darktext: '#f5f5f7', blue: '#0071e3', emerald: '#34c759' }
+                    },
+                    fontFamily: { sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', 'Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.1"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        body { transition: background-color 0.3s ease, color 0.3s ease; font-family: 'Inter', sans-serif; }
+        .glass { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        .dark ::-webkit-scrollbar-thumb { background: #3a3a3c; border-radius: 4px; }
+        html:not(.dark) ::-webkit-scrollbar-thumb { background: #d1d1d6; border-radius: 4px; }
+        .sidebar-link { transition: all 0.2s ease; }
+        .sidebar-link.active { background-color: #0071e3; color: white; }
+        html:not(.dark) .sidebar-link:not(.active):hover { background-color: #e5e5ea; }
+        .dark .sidebar-link:not(.active):hover { background-color: #2c2c2e; }
+        .drawer-open { transform: translateX(0%); }
+        .drawer-closed { transform: translateX(100%); }
+        .fade-anim { animation: fade 1.5s; }
+        @keyframes fade { from {opacity: .4} to {opacity: 1} }
+        
+        .a4-page {
+            width: 210mm; min-height: 297mm; background: white; color: black; padding: 20mm;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); margin: 0 auto;
+            font-family: 'Times New Roman', Times, serif; line-height: 1.6; outline: none;
+        }
+        .a4-page table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        .a4-page th, .a4-page td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 13px; }
+        .a4-page th { background-color: #f3f4f6; width: 30%; }
+        .a4-page:focus { box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.4); }
+    </style>
+</head>
+<body class="bg-apple-bg dark:bg-apple-darkbg text-apple-text dark:text-apple-darktext h-screen overflow-hidden flex relative">
+
+    <div id="toast-container" class="fixed top-5 right-4 sm:right-5 z-[500] flex flex-col space-y-2 pointer-events-none w-11/12 sm:w-auto max-w-sm"></div>
+
+    <!-- 1. LANDING PAGE -->
+    <div id="landing-page" class="absolute inset-0 z-[150] bg-white dark:bg-[#121212] overflow-y-auto flex flex-col transition-opacity duration-500">
+        <header class="h-16 sm:h-20 px-4 sm:px-8 flex items-center justify-between border-b border-gray-100 dark:border-gray-800/50 sticky top-0 bg-white/80 dark:bg-[#121212]/80 glass z-10">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-apple-blue flex items-center justify-center text-white shadow-lg shadow-apple-blue/30"><i class="fa-solid fa-handshake text-sm sm:text-lg"></i></div>
+                <span class="tracking-tight text-lg sm:text-xl text-gray-900 dark:text-white font-extrabold">TradeFlow</span>
+            </div>
+            <div class="flex gap-2 sm:gap-4 items-center">
+                <button onclick="toggleTheme()" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:scale-105 transition-transform"><i id="landing-theme-icon" class="fa-solid fa-moon text-sm"></i></button>
+                <button onclick="openAuthModal(false)" class="hidden md:block px-4 py-2 text-sm sm:text-base font-semibold text-gray-600 dark:text-gray-300 hover:text-apple-blue transition-colors">Giriş Yap</button>
+                <button onclick="openAuthModal(true)" class="px-4 py-2 sm:px-6 sm:py-2.5 bg-apple-blue hover:bg-blue-600 text-white rounded-full text-xs sm:text-sm font-semibold shadow-lg shadow-blue-500/30 transition-all">Sisteme Katıl</button>
+            </div>
+        </header>
+
+        <main class="flex-grow flex flex-col items-center pt-12 sm:pt-20 pb-20 px-4 sm:px-6 lg:px-8 text-center relative overflow-x-hidden">
+            <div class="absolute top-40 left-1/2 -translate-x-1/2 w-[300px] h-[300px] sm:w-[600px] sm:h-[600px] bg-apple-blue/5 dark:bg-apple-blue/10 blur-[80px] rounded-full pointer-events-none"></div>
+            
+            <div class="relative w-full max-w-5xl mx-auto min-h-[250px] sm:min-h-[300px] mb-8">
+                <div class="hero-slide fade-anim absolute inset-0 flex flex-col items-center">
+                    <span class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-blue-50 dark:bg-blue-900/30 text-apple-blue text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-6 border border-blue-100 dark:border-blue-800/50">CANLI VERİ AKIŞI & BİLDİRİM</span>
+                    <h1 class="text-4xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight text-gray-900 dark:text-white leading-[1.15] px-2">
+                        Küresel <span class="text-transparent bg-clip-text bg-gradient-to-r from-apple-blue to-apple-emerald">Emtia Ticaretinde</span> Realtime Ağ.
+                    </h1>
+                    <p class="mt-6 text-sm sm:text-lg text-gray-500 dark:text-gray-400 max-w-2xl px-2">Anlık teklifler, canlı satır güvenliği ve doğrulanmış emtia operasyonları tek platformda.</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 w-full sm:w-auto px-4 z-10">
+                <button onclick="openAuthModal(true)" class="w-full sm:w-auto px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-black rounded-full font-bold text-sm sm:text-base hover:scale-105 transition-transform shadow-xl">Hemen Başla</button>
+                <button onclick="openAuthModal(false)" class="w-full sm:w-auto px-8 py-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-full font-bold text-sm sm:text-base hover:bg-gray-200 transition-colors">Broker Girişi</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- 2. APP LAYOUT -->
+    <div id="app-layout" class="flex-1 flex overflow-hidden hidden w-full h-full relative">
+        <aside class="hidden md:flex w-64 border-r border-gray-200 dark:border-gray-800 bg-apple-card dark:bg-apple-darkcard flex-col flex-shrink-0 z-20 transition-colors shadow-sm">
+            <div class="h-16 flex items-center px-6 border-b border-gray-200 dark:border-gray-800">
+                <div class="w-8 h-8 bg-gradient-to-tr from-apple-emerald to-apple-blue rounded-lg flex items-center justify-center text-white shadow-md mr-3 flex-shrink-0"><i class="fa-solid fa-handshake text-sm"></i></div>
+                <div class="flex flex-col">
+                    <h1 class="font-semibold text-lg tracking-tight leading-tight text-gray-900 dark:text-white">TradeFlow <span class="font-normal text-gray-500 text-sm">SaaS</span></h1>
+                    <span class="text-[10px] font-mono font-bold text-apple-blue tracking-wider uppercase mt-0.5">v1.9.1 • SECURE</span>
+                </div>
+            </div>
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+                <a href="#" data-target="dashboard" class="sidebar-link active flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium"><i class="fa-solid fa-chart-pie w-5 text-center"></i><span>Dashboard</span></a>
+                <a href="#" data-target="marketplace" class="sidebar-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400"><i class="fa-solid fa-layer-group w-5 text-center"></i><span>İlan Havuzu</span></a>
+                <a href="#" data-target="pipeline" class="sidebar-link flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400"><i class="fa-solid fa-list-check w-5 text-center"></i><span>İş Akışı & Teklifler</span></a>
+            </nav>
+            <div class="p-4 border-t border-gray-200 dark:border-gray-800">
+                <div class="bg-gray-50 dark:bg-gray-900/50 rounded-2xl p-3 border border-gray-200 dark:border-gray-800 space-y-1">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-bold uppercase text-gray-400">WebSocket</span>
+                        <span id="realtime-status-badge" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30">REALTIME ON</span>
+                    </div>
+                    <p class="text-xs font-semibold font-mono text-gray-600 dark:text-gray-300">Appwrite Frankfurt</p>
+                </div>
+            </div>
+        </aside>
+
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-[#1c1c1e] border-t border-gray-200 dark:border-gray-800 flex justify-around items-center z-40 px-2 pb-safe">
+            <a href="#" data-target="dashboard" class="sidebar-link active flex flex-col items-center justify-center w-16 h-full text-apple-blue"><i class="fa-solid fa-chart-pie text-lg mb-1"></i><span class="text-[9px] font-medium">Panel</span></a>
+            <a href="#" data-target="marketplace" class="sidebar-link flex flex-col items-center justify-center w-16 h-full text-gray-500"><i class="fa-solid fa-layer-group text-lg mb-1"></i><span class="text-[9px] font-medium">Havuz</span></a>
+            <a href="#" data-target="pipeline" class="sidebar-link flex flex-col items-center justify-center w-16 h-full text-gray-500"><i class="fa-solid fa-list-check text-lg mb-1"></i><span class="text-[9px] font-medium">İş Akışı</span></a>
+        </nav>
+
+        <div class="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
+            <header class="h-14 sm:h-16 glass bg-white/70 dark:bg-black/70 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-3 sm:px-6 z-10 sticky top-0 transition-colors">
+                <div class="md:hidden flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-apple-blue flex items-center justify-center text-white"><i class="fa-solid fa-handshake text-xs"></i></div></div>
+                
+                <div class="flex items-center space-x-1 sm:space-x-2 bg-gray-100 dark:bg-gray-800/80 p-1 rounded-lg border border-gray-200 dark:border-gray-700 ml-auto md:ml-0">
+                    <span class="hidden sm:inline-block text-[10px] sm:text-xs font-medium text-gray-500 px-2">Rol:</span>
+                    <button id="role-btn-broker" onclick="setRole('broker')" class="text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 bg-white dark:bg-gray-700 shadow-sm rounded-md font-medium text-apple-text dark:text-white transition-all">Broker</button>
+                    <button id="role-btn-supervisor" onclick="requestSupervisorAccess()" class="text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all">Süpervizör</button>
+                </div>
+
+                <div class="flex items-center space-x-2 sm:space-x-4 ml-2 sm:ml-4">
+                    <button onclick="toggleTheme()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:scale-105 transition-transform"><i id="theme-icon" class="fa-solid fa-moon text-xs sm:text-sm"></i></button>
+                    <div class="flex items-center space-x-2 sm:space-x-3 pl-2 sm:pl-4 border-l border-gray-200 dark:border-gray-700">
+                        <div class="text-right hidden lg:block">
+                            <p class="text-sm font-semibold leading-tight text-gray-900 dark:text-white" id="user-profile-name">Kullanıcı</p>
+                            <p class="text-[9px] font-medium px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-700 dark:bg-blue-900/30 uppercase mt-0.5 inline-block" id="user-profile-id">ID: TFS0000</p>
+                        </div>
+                        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-200 font-bold text-xs sm:text-sm shadow-sm" id="user-profile-avatar">U</div>
+                        <button onclick="appwriteLogout()" class="text-gray-400 hover:text-red-500 p-1 sm:p-1.5 transition-colors" title="Çıkış Yap"><i class="fa-solid fa-power-off text-sm"></i></button>
+                    </div>
+                </div>
+            </header>
+            <main id="app-content" class="flex-1 overflow-y-auto p-4 sm:p-6 bg-transparent relative"></main>
+        </div>
+    </div>
+
+    <!-- INTERAKTİF DOKÜMAN EDİTÖRÜ -->
+    <div id="interactive-doc-editor" class="fixed inset-0 bg-gray-900/95 z-[300] hidden flex flex-col">
+        <div class="h-16 bg-white dark:bg-apple-darkcard border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 sm:px-6 shadow-sm shrink-0">
+            <div class="flex items-center gap-4">
+                <button onclick="closeDocEditor()" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-red-500 transition-colors"><i class="fa-solid fa-arrow-left"></i></button>
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white text-sm sm:text-base">İnteraktif Evrak Düzenleyici</h3>
+                    <p class="text-[10px] sm:text-xs text-gray-500">Mevcut şablonu tıklayarak değiştirebilirsiniz.</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <select id="editorDocType" onchange="changeDocTemplate()" class="bg-gray-100 dark:bg-gray-800 border-none rounded-lg p-2 text-xs sm:text-sm font-semibold outline-none cursor-pointer text-gray-900 dark:text-white">
+                    <option value="LOI">LOI (Letter of Intent)</option>
+                    <option value="SCO">SCO (Soft Corporate Offer)</option>
+                    <option value="FCO">FCO (Full Corporate Offer)</option>
+                </select>
+                <button onclick="saveDocumentToCloud()" id="btnSaveToCloud" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs sm:text-sm font-bold shadow-md transition-colors flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> <span class="hidden sm:inline">Buluta Kaydet</span>
+                </button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 sm:p-10 bg-gray-200 dark:bg-[#121212] flex justify-center custom-scrollbar">
+            <div id="a4-document" class="a4-page" contenteditable="true"></div>
+        </div>
+    </div>
+
+    <!-- MODALLAR -->
+    <div id="offer-modal" class="fixed inset-0 bg-black/60 glass z-[130] hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-apple-darkcard border border-gray-200 dark:border-gray-800 w-full max-w-md rounded-3xl p-5 sm:p-6 shadow-2xl relative space-y-4">
+            <button onclick="closeOfferModal()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            <div><h3 class="text-base sm:text-lg font-bold">Resmi Teklif Gönder</h3><p class="text-[10px] sm:text-xs text-gray-500 mt-1">İlan Kodu: <span id="offer-target" class="font-semibold text-apple-blue"></span></p></div>
+            <form onsubmit="submitOffer(event)" class="space-y-3">
+                <input type="text" id="offerVolume" required placeholder="Talep Edilen Miktar (Örn: 5.000 MT)" class="w-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 text-xs sm:text-sm outline-none focus:border-apple-blue dark:border-gray-700">
+                <input type="number" id="offerPrice" required placeholder="Hedef Fiyat (USD / MT)" class="w-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 text-xs sm:text-sm outline-none focus:border-apple-blue dark:border-gray-700">
+                <textarea id="offerNotes" rows="3" placeholder="LOI Özeti, Teslimat veya ek mesajınız..." class="w-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 text-xs sm:text-sm outline-none focus:border-apple-blue dark:border-gray-700 custom-scrollbar"></textarea>
+                <button type="submit" class="w-full bg-apple-blue text-white py-3 rounded-xl shadow-md transition-all font-semibold flex items-center justify-center gap-2 text-xs sm:text-sm"><i class="fa-solid fa-paper-plane"></i> İlan Sahibine İlet</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="loi-generator-modal" class="fixed inset-0 bg-black/60 glass z-[130] hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-apple-darkcard border border-gray-200 dark:border-gray-800 w-full max-w-lg rounded-3xl p-5 sm:p-6 shadow-2xl relative space-y-4">
+            <button onclick="closeLOIGenerator()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            <div>
+                <h3 class="text-base sm:text-lg font-bold">Resmi Belge (LOI/SCO) Oluştur</h3>
+                <p class="text-[10px] sm:text-xs text-gray-500 mt-1">Lütfen belgenin üretileceği kendi <span class="font-bold text-apple-blue">Müşteri / Firma</span> bilgilerinizi giriniz.</p>
+            </div>
+            <form onsubmit="generateAndPrintLOI(event)" class="space-y-3">
+                <input type="text" id="loiCompanyName" required placeholder="Firma Adı (Örn: Global Trade LLC)" class="w-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 text-xs sm:text-sm outline-none focus:border-apple-blue dark:border-gray-700">
+                <textarea id="loiCompanyAddress" required rows="2" placeholder="Firma Adresi" class="w-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 text-xs sm:text-sm outline-none focus:border-apple-blue dark:border-gray-700 custom-scrollbar"></textarea>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <input type="email" id="loiEmail" required placeholder="E-Posta Adresi" class="w-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 text-xs sm:text-sm outline-none focus:border-apple-blue dark:border-gray-700">
+                    <input type="text" id="loiPhone" required placeholder="Telefon Numarası" class="w-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 text-xs sm:text-sm outline-none focus:border-apple-blue dark:border-gray-700">
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <input type="text" id="loiSignatoryName" required placeholder="Yetkili Adı Soyadı" class="w-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 text-xs sm:text-sm outline-none focus:border-apple-blue dark:border-gray-700">
+                    <input type="text" id="loiSignatoryTitle" required placeholder="Ünvanı (Örn: CEO)" class="w-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 text-xs sm:text-sm outline-none focus:border-apple-blue dark:border-gray-700">
+                </div>
+                
+                <button type="submit" class="w-full bg-apple-blue text-white py-3 rounded-xl shadow-md transition-all font-semibold flex items-center justify-center gap-2 text-xs sm:text-sm mt-2">
+                    <i class="fa-solid fa-print"></i> Belgeyi Hazırla ve İndir
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="auth-modal" class="fixed inset-0 bg-black/60 glass z-[200] hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-apple-darkcard border border-gray-200 dark:border-gray-800 w-full max-w-md rounded-3xl p-6 shadow-2xl relative">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+            <div class="text-center mb-6">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-tr from-apple-emerald to-apple-blue rounded-2xl mx-auto flex items-center justify-center text-white text-lg sm:text-xl mb-3"><i class="fa-solid fa-handshake"></i></div>
+                <h3 class="text-lg sm:text-xl font-bold tracking-tight" id="auth-modal-title">Giriş Yap</h3>
+            </div>
+            <form onsubmit="handleAuthSubmit(event)" class="space-y-3 sm:space-y-4">
+                <div id="auth-field-name" class="hidden"><input type="text" id="auth-name-input" placeholder="Ad Soyad" class="w-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 text-sm dark:border-gray-700"></div>
+                <input type="email" id="auth-email-input" required placeholder="E-Posta" class="w-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 text-sm dark:border-gray-700">
+                <input type="password" id="auth-password-input" required minlength="8" placeholder="Şifre" class="w-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 text-sm dark:border-gray-700">
+                <button type="submit" id="auth-submit-btn" class="w-full bg-gray-900 dark:bg-white text-white dark:text-black py-3 rounded-xl font-bold text-sm">Oturum Aç</button>
+            </form>
+            <p class="text-xs text-center text-gray-500 mt-4">Hesabınız yok mu? <button onclick="toggleAuthMode()" class="text-apple-blue font-bold">Katıl</button></p>
+        </div>
+    </div>
+
+    <div id="new-deal-modal" class="fixed inset-0 bg-black/60 glass z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-apple-darkcard border border-gray-200 dark:border-gray-800 w-full max-w-lg rounded-3xl p-5 sm:p-6 shadow-2xl relative max-h-[95vh] overflow-y-auto custom-scrollbar">
+            <button onclick="closeNewDealModal()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-lg sm:text-xl font-bold mb-2">Yeni İlan Ekle</h3>
+            <p class="text-[10px] sm:text-xs text-gray-500 mb-4 sm:mb-5">İşleminiz İlan Havuzunda yayınlanacaktır.</p>
+            <form onsubmit="handleCreateDeal(event)" class="space-y-3 sm:space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div>
+                        <input id="dealCode" type="text" readonly class="w-full bg-gray-100 dark:bg-gray-800 text-gray-500 border rounded-xl p-2.5 text-xs sm:text-sm dark:border-gray-700 cursor-not-allowed outline-none font-mono">
+                        <p class="text-[9px] text-gray-400 mt-1">Sistem ID'si.</p>
+                    </div>
+                    
+                    <div class="relative h-[38px] sm:h-[42px]">
+                        <select id="dealProduct" required class="w-full h-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 pr-8 text-[11px] sm:text-xs outline-none focus:border-apple-blue dark:border-gray-700 appearance-none text-gray-900 dark:text-white cursor-pointer">
+                            <option value="" disabled selected>Ürün Seçin...</option>
+                            <option value="Diesel ULSD 10 PPM, EN 590">Diesel ULSD 10 PPM, EN 590 ASTM D975</option>
+                            <option value="Gasoil D2, ISO 8217 GOST">Gasoil D2, ISO 8217 GOST</option>
+                            <option value="Fuel Oil, CST 180 / 380">Fuel Oil, CST 180 / CST 380</option>
+                            <option value="Jet A-1 DEF STAN 91-091">Jet A-1 DEF STAN 91-091</option>
+                            <option value="Base Oil SN 150/500/BS150">Base Oil SN 150/ SN 500/ BS 150</option>
+                            <option value="Naphtha, Light / Heavy">Naphtha, Light / Heavy</option>
+                            <option value="Bitumen 60/70, 80/100, PMB">Bitumen 60/70 · 80/100 · PMB</option>
+                            <option value="Solvents, Arom. / Aliph.">Solvents, Aromatic / Aliphatic</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <input id="dealParty" type="text" required placeholder="Firma Adınız" class="w-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 text-xs sm:text-sm dark:border-gray-700 outline-none focus:border-apple-blue">
+                    <input id="dealVolume" type="text" required placeholder="Hacim (Örn: 100.000 MT)" class="w-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 text-xs sm:text-sm dark:border-gray-700 outline-none focus:border-apple-blue">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div class="relative h-[38px] sm:h-[42px]">
+                        <select id="dealStage" class="w-full h-full bg-gray-50 dark:bg-black border rounded-xl p-2.5 pr-8 text-xs sm:text-sm outline-none focus:border-apple-blue dark:border-gray-700 appearance-none text-gray-900 dark:text-white cursor-pointer">
+                            <option value="SATIŞ İLANI (ARZ)">SATIŞ İLANI (ARZ)</option>
+                            <option value="ALIM İLANI (TALEP)">ALIM İLANI (TALEP)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+                    </div>
+                    <input id="dealFile" type="file" class="w-full h-[38px] sm:h-[42px] text-[10px] sm:text-xs border p-1.5 rounded-xl dark:border-gray-700 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:bg-apple-blue file:text-white cursor-pointer">
+                </div>
+                <button type="submit" class="w-full bg-apple-blue hover:bg-blue-600 transition-colors text-white py-3 rounded-xl font-bold text-sm shadow-md mt-2">Havuza Gönder</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="custom-confirm-modal" class="fixed inset-0 bg-black/50 glass z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-apple-darkcard border border-gray-200 dark:border-gray-800 w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-4">
+            <h3 class="text-base font-bold text-gray-900 dark:text-white" id="confirm-modal-title">İşlem Onayı</h3>
+            <p class="text-xs text-gray-600 dark:text-gray-400" id="confirm-modal-msg">Bu işlemi yapmak istediğinize emin misiniz?</p>
+            <div class="flex justify-end gap-3 pt-2">
+                <button id="confirm-btn-cancel" class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700">İptal</button>
+                <button id="confirm-btn-ok" class="px-4 py-2 bg-red-500 text-white text-xs font-semibold rounded-xl hover:bg-red-600">Onayla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DETAY ÇEKMECESİ -->
+    <aside id="dealDrawer" class="drawer-closed fixed right-0 top-0 bottom-0 w-full sm:w-[450px] bg-white dark:bg-apple-darkcard shadow-[-10px_0_40px_rgba(0,0,0,0.15)] dark:shadow-[-10px_0_40px_rgba(0,0,0,0.8)] border-l border-gray-200 dark:border-gray-800 z-[90] flex flex-col transition-transform duration-300 ease-in-out">
+        <div class="h-16 px-4 sm:px-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0 bg-gray-50 dark:bg-gray-900/50">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-apple-blue/10 text-apple-blue flex items-center justify-center"><i class="fa-solid fa-file-signature text-sm"></i></div>
+                <div>
+                    <h3 class="text-xs sm:text-sm font-bold tracking-tight text-gray-900 dark:text-white" id="drawerCode">TR-000</h3>
+                    <p class="text-[9px] sm:text-[10px] text-gray-500 font-medium uppercase tracking-wider" id="drawerStageBadge">Aşama</p>
+                </div>
+            </div>
+            <button onclick="closeDrawer()" class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 transition-colors"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <div>
+                <h4 class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 sm:mb-3 flex items-center gap-2"><i class="fa-solid fa-box"></i> Ticari Detaylar</h4>
+                <div class="grid grid-cols-2 gap-2 sm:gap-3">
+                    <div class="col-span-2 bg-gray-50 dark:bg-black p-2 sm:p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+                        <span class="text-[9px] sm:text-[10px] text-gray-500 block mb-0.5 sm:mb-1">Ürün / Emtia</span>
+                        <p class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white" id="drawerProduct">Emtia Adı</p>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-black p-2 sm:p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+                        <span class="text-[9px] sm:text-[10px] text-gray-500 block mb-0.5 sm:mb-1">Miktar & Hacim</span>
+                        <p class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white" id="drawerVolume">0 MT</p>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-black p-2 sm:p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+                        <span class="text-[9px] sm:text-[10px] text-gray-500 block mb-0.5 sm:mb-1">Taraf Firma</span>
+                        <p class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white" id="drawerParty">Firma Adı</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="loi-details-box">
+                <h4 class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-apple-emerald mb-2 sm:mb-3 flex items-center gap-2"><i class="fa-solid fa-file-contract"></i> Lojistik & Koruma</h4>
+                <div class="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/50 p-3 sm:p-4 rounded-xl space-y-2">
+                    <div class="flex justify-between items-center mb-1 border-b border-emerald-200 dark:border-emerald-800/50 pb-2">
+                        <span class="text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-500 uppercase">Koruma Statüsü</span>
+                        <span class="text-[8px] sm:text-[9px] bg-apple-emerald text-white px-2 py-0.5 rounded-md font-bold">ICC Onaylı Aktif</span>
+                    </div>
+                    <p class="text-[10px] sm:text-[11px] text-gray-600 dark:text-gray-300">İlgili ilan ve tarafınızca oluşturulacak evraklar uluslararası ICC kuralları ve NCNDA koruması altındadır.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-4 sm:p-6 border-t border-gray-200 dark:border-gray-800 shrink-0 bg-gray-50 dark:bg-gray-900/50 flex flex-col gap-2 pb-safe" id="drawerActions"></div>
+    </aside>
+
+    <!-- SCRIPT ALANI -->
+    <script>
+        const APPWRITE_ENDPOINT = 'https://fra.cloud.appwrite.io/v1';
+        const APPWRITE_PROJECT_ID = '6a8a912a0020db9368df';
+        const DB_ID = '6a8a93d70014aedaba8e';
+        const COLLECTION_ID = 'deals';
+        const BUCKET_ID = 'trade_docs';
+
+        const { Client, Account, ID, Databases, Storage, Permission, Role } = Appwrite;
+        const appwriteClient = new Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID);
+        const appwriteAccount = new Account(appwriteClient);
+        const databases = new Databases(appwriteClient);
+        const storage = new Storage(appwriteClient);
+
+        window.currentRole = 'broker';
+        window.currentUser = null;
+        window.userPrefs = { favorites: [], offersMade: 0, listingsCount: 0, tradeflowId: "" }; 
+        window.currentSelectedDocId = null;
+
+        function initRealtimeSubscription() {
+            try {
+                appwriteClient.subscribe(`databases.${DB_ID}.collections.${COLLECTION_ID}.documents`, (response) => {
+                    const event = response.events[0];
+                    const doc = response.payload;
+                    
+                    if (event.includes('.create')) {
+                        if (doc.stage === 'GELEN TEKLİF') {
+                            const myId = window.userPrefs.tradeflowId;
+                            if (window.currentRole === 'supervisor' || (doc.code && doc.code.startsWith(myId))) {
+                                showToast(`🔔 Yeni Teklif Geldi! İlan: ${doc.code}`, 'amber');
+                            }
+                        } else {
+                            showToast(`📢 Yeni İlan Eklendi: ${doc.product}`, 'info');
+                        }
+                    } else if (event.includes('.delete')) {
+                        showToast(`İşlem silindi: ${doc.code}`, 'info');
+                    }
+
+                    const currentTab = document.querySelector('.sidebar-link.active')?.getAttribute('data-target');
+                    if (currentTab === 'marketplace' && window.loadMarketplace) window.loadMarketplace();
+                    if (currentTab === 'pipeline' && window.loadPipeline) window.loadPipeline();
+                    if (currentTab === 'dashboard' && window.loadDashboardData) window.loadDashboardData();
+                });
+            } catch(e) { console.error("Realtime subscription error:", e); }
+        }
+
+        window.showToast = (msg, type = 'info') => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            let color = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-red-600' : type === 'amber' ? 'bg-amber-500' : 'bg-gray-900 dark:bg-white dark:text-black';
+            toast.className = `px-3 py-2 sm:px-4 sm:py-3 rounded-xl sm:rounded-2xl shadow-xl text-[10px] sm:text-xs font-semibold flex items-center gap-2 sm:gap-3 transition-all transform translate-y-2 opacity-0 text-white ${color}`;
+            toast.innerHTML = `<i class="fa-solid fa-bell"></i><span>${msg}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+            setTimeout(() => { toast.classList.add('opacity-0', '-translate-y-2'); setTimeout(() => toast.remove(), 300); }, 3500);
+        };
+
+        window.showCustomConfirm = (title, message, onConfirm) => {
+            document.getElementById('confirm-modal-title').innerText = title; document.getElementById('confirm-modal-msg').innerText = message;
+            const modal = document.getElementById('custom-confirm-modal');
+            const okBtn = document.getElementById('confirm-btn-ok'); const cancelBtn = document.getElementById('confirm-btn-cancel');
+            const cleanup = () => { modal.classList.add('hidden'); okBtn.onclick = null; cancelBtn.onclick = null; };
+            okBtn.onclick = () => { cleanup(); onConfirm(); }; cancelBtn.onclick = cleanup;
+            modal.classList.remove('hidden');
+        };
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            document.getElementById('theme-icon').className = isDark ? 'fa-solid fa-sun text-amber-500 text-xs sm:text-sm' : 'fa-solid fa-moon text-gray-600 text-xs sm:text-sm';
+            document.getElementById('landing-theme-icon').className = isDark ? 'fa-solid fa-sun text-amber-500 text-sm sm:text-base' : 'fa-solid fa-moon text-gray-600 text-sm sm:text-base';
+        }
+
+        async function checkCurrentSession() {
+            try { 
+                const user = await appwriteAccount.get(); 
+                window.currentUser = user;
+                try {
+                    const prefs = await appwriteAccount.getPrefs();
+                    window.userPrefs = { 
+                        favorites: prefs.favorites || [], 
+                        offersMade: prefs.offersMade || 0,
+                        listingsCount: prefs.listingsCount || 0,
+                        tradeflowId: prefs.tradeflowId || ('TFS' + Math.floor(1000 + Math.random() * 9000))
+                    };
+                    if(!prefs.tradeflowId) await appwriteAccount.updatePrefs(window.userPrefs);
+                } catch(e) {}
+                showAppLayout(user); 
+            } catch (err) { showLandingPage(); }
+        }
+
+        function showAppLayout(user) {
+            document.getElementById('landing-page').classList.add('opacity-0');
+            setTimeout(() => {
+                document.getElementById('landing-page').classList.add('hidden');
+                document.getElementById('app-layout').classList.remove('hidden');
+                document.getElementById('user-profile-name').innerText = user.name || user.email.split('@')[0];
+                document.getElementById('user-profile-avatar').innerText = (user.name || user.email).slice(0, 2).toUpperCase();
+                document.getElementById('user-profile-id').innerText = `ID: ${window.userPrefs.tradeflowId}`;
+                
+                document.querySelectorAll('.sidebar-link').forEach(l => {
+                    l.classList.remove('active', 'bg-apple-blue', 'text-white', 'text-apple-blue');
+                    if(l.classList.contains('flex-col')) l.classList.add('text-gray-500'); 
+                    else l.classList.add('text-gray-600', 'dark:text-gray-400'); 
+                });
+                const dashLinks = document.querySelectorAll('[data-target="dashboard"]');
+                dashLinks.forEach(dl => {
+                    if(dl.classList.contains('flex-col')) dl.classList.add('active', 'text-apple-blue'); 
+                    else dl.classList.add('active', 'bg-apple-blue', 'text-white'); 
+                });
+                renderModule('dashboard'); 
+            }, 300);
+        }
+
+        function showLandingPage() {
+            document.getElementById('app-layout').classList.add('hidden');
+            document.getElementById('landing-page').classList.remove('hidden', 'opacity-0');
+        }
+
+        let isRegisterMode = false;
+        window.openAuthModal = (register = false) => {
+            isRegisterMode = register;
+            document.getElementById('auth-field-name').classList.toggle('hidden', !isRegisterMode);
+            document.getElementById('auth-modal-title').innerText = isRegisterMode ? 'Ücretsiz Katıl' : 'Giriş Yap';
+            document.getElementById('auth-submit-btn').innerText = isRegisterMode ? 'Hesap Oluştur' : 'Giriş Yap';
+            document.getElementById('auth-modal').classList.remove('hidden');
+        };
+        window.closeAuthModal = () => document.getElementById('auth-modal').classList.add('hidden');
+        window.toggleAuthMode = () => openAuthModal(!isRegisterMode);
+
+        window.handleAuthSubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('auth-email-input').value;
+            const password = document.getElementById('auth-password-input').value;
+            const name = document.getElementById('auth-name-input').value;
+            try {
+                try { await appwriteAccount.deleteSession('current'); } catch(err){}
+
+                if (isRegisterMode) {
+                    await appwriteAccount.create(ID.unique(), email, password, name || 'Broker');
+                    await appwriteAccount.createEmailPasswordSession(email, password);
+                    const newTradeflowId = 'TFS' + Math.floor(1000 + Math.random() * 9000);
+                    await appwriteAccount.updatePrefs({ favorites: [], offersMade: 0, listingsCount: 0, tradeflowId: newTradeflowId });
+                } else {
+                    await appwriteAccount.createEmailPasswordSession(email, password);
+                }
+                closeAuthModal();
+                checkCurrentSession();
+            } catch (err) { showToast(err.message, 'error'); }
+        };
+
+        window.appwriteLogout = async () => {
+            try { await appwriteAccount.deleteSession('current'); window.currentUser = null; showLandingPage(); } 
+            catch (err) { showToast('Çıkış hatası.', 'error'); }
+        };
+
+        window.requestSupervisorAccess = () => {
+            if (window.currentUser.labels && window.currentUser.labels.includes('supervisor')) {
+                setRole('supervisor'); showToast('Süpervizör modu aktif.', 'success');
+            } else { showToast('Yönetici yetkiniz bulunmuyor.', 'error'); }
+        };
+
+        window.setRole = (role) => {
+            window.currentRole = role;
+            const bBtn = document.getElementById('role-btn-broker'); const sBtn = document.getElementById('role-btn-supervisor');
+            if (role === 'supervisor') {
+                bBtn.className = 'text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all';
+                sBtn.className = 'text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 bg-red-600 shadow-sm rounded-md font-medium text-white transition-all';
+            } else {
+                sBtn.className = 'text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all';
+                bBtn.className = 'text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 bg-white dark:bg-gray-700 shadow-sm rounded-md font-medium text-apple-text dark:text-white transition-all';
+            }
+            if(window.loadPipeline) window.loadPipeline();
+            if(window.loadMarketplace) window.loadMarketplace();
+            if(window.currentSelectedDocId) {
+                const c = document.getElementById('drawerCode').innerText;
+                const p = document.getElementById('drawerProduct').innerText;
+                const pa = document.getElementById('drawerParty').innerText;
+                const v = document.getElementById('drawerVolume').innerText;
+                const s = document.getElementById('drawerStageBadge').innerText;
+                openDrawer(window.currentSelectedDocId, c, p, pa, v, s, window.currentSelectedFileId);
+            }
+        };
+
+        window.openNewDealModal = () => {
+            if (!window.currentUser) return showToast('Lütfen önce giriş yapın.', 'error');
+            const d = new Date();
+            const dd = String(d.getDate()).padStart(2, '0'); const mm = String(d.getMonth() + 1).padStart(2, '0'); const yy = String(d.getFullYear()).slice(-2);
+            const dateStr = `${dd}${mm}${yy}`;
+            const tfId = window.userPrefs.tradeflowId || 'TFS0000';
+            const sequence = String((window.userPrefs.listingsCount || 0) + 1).padStart(2, '0');
+            document.getElementById('dealCode').value = `${tfId}-${dateStr}-${sequence}`;
+            document.getElementById('new-deal-modal').classList.remove('hidden');
+        };
+        window.closeNewDealModal = () => document.getElementById('new-deal-modal').classList.add('hidden');
+        
+        window.handleCreateDeal = async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('dealCode').value;
+            const product = document.getElementById('dealProduct').value;
+            const party = document.getElementById('dealParty').value;
+            const volume = document.getElementById('dealVolume').value;
+            const stage = document.getElementById('dealStage').value;
+            const fileInput = document.getElementById('dealFile');
+            let fileId = "";
+            try {
+                const rowPermissions = [
+                    Permission.read(Role.any()),
+                    Permission.update(Role.user(window.currentUser.$id)),
+                    Permission.delete(Role.user(window.currentUser.$id))
+                ];
+
+                if (fileInput.files.length > 0) {
+                    const uploadedFile = await storage.createFile(BUCKET_ID, ID.unique(), fileInput.files[0], rowPermissions);
+                    fileId = uploadedFile.$id;
+                }
+
+                await databases.createDocument(DB_ID, COLLECTION_ID, ID.unique(), { code, product, party, volume, stage, fileId }, rowPermissions);
+                window.userPrefs.listingsCount = (window.userPrefs.listingsCount || 0) + 1;
+                await appwriteAccount.updatePrefs(window.userPrefs);
+                showToast('İlan başarıyla İlan Havuzuna eklendi!', 'success');
+                closeNewDealModal();
+                if(window.loadMarketplace) window.loadMarketplace();
+                if(window.loadDashboardData) window.loadDashboardData();
+            } catch (err) { showToast('Hata: ' + err.message, 'error'); }
+        };
+
+        window.deleteDeal = async (docId) => {
+            showCustomConfirm("Kayıt Silinecek", "Silmek istediğinize emin misiniz?", async () => {
+                try {
+                    await databases.deleteDocument(DB_ID, COLLECTION_ID, docId);
+                    showToast('İşlem silindi.', 'success');
+                    if(window.loadMarketplace) window.loadMarketplace();
+                    if(window.loadPipeline) window.loadPipeline();
+                    closeDrawer();
+                } catch(err) {
+                    showToast('Yetki hatası: Sadece ilan sahibi silebilir.', 'error');
+                }
+            });
+        };
+
+        window.makeOffer = (code) => {
+            document.getElementById('offer-target').innerText = code;
+            document.getElementById('offer-modal').classList.remove('hidden');
+        };
+        window.closeOfferModal = () => document.getElementById('offer-modal').classList.add('hidden');
+        
+        window.submitOffer = async (e) => {
+            e.preventDefault();
+            const targetCode = document.getElementById('offer-target').innerText; 
+            const volume = document.getElementById('offerVolume').value;
+            const price = document.getElementById('offerPrice').value;
+            const notes = document.getElementById('offerNotes').value;
+            try {
+                const rowPermissions = [
+                    Permission.read(Role.any()),
+                    Permission.update(Role.user(window.currentUser.$id)),
+                    Permission.delete(Role.user(window.currentUser.$id))
+                ];
+
+                await databases.createDocument(DB_ID, COLLECTION_ID, ID.unique(), {
+                    code: targetCode,
+                    product: `Fiyat: $${price} | Not: ${notes.substring(0, 50)}...`,
+                    party: `${window.currentUser.name} (${window.userPrefs.tradeflowId})`,
+                    volume: volume,
+                    stage: "GELEN TEKLİF",
+                    fileId: ""
+                }, rowPermissions);
+
+                closeOfferModal();
+                window.userPrefs.offersMade += 1;
+                await appwriteAccount.updatePrefs(window.userPrefs);
+                showToast('Teklifiniz başarıyla alıcı/satıcıya iletildi.', 'success');
+                if(window.loadDashboardData) window.loadDashboardData();
+                if(window.loadMarketplace) window.loadMarketplace();
+            } catch (err) { showToast('Teklif iletilemedi: ' + err.message, 'error'); }
+        };
+
+        window.toggleFavorite = async (docId, btn) => {
+            const isFav = window.userPrefs.favorites.includes(docId);
+            if(isFav) {
+                window.userPrefs.favorites = window.userPrefs.favorites.filter(id => id !== docId);
+                if(btn) btn.innerHTML = '<i class="fa-solid fa-heart text-sm sm:text-lg text-gray-400"></i>';
+                showToast('Favorilerden çıkarıldı.', 'info');
+            } else {
+                window.userPrefs.favorites.push(docId);
+                if(btn) btn.innerHTML = '<i class="fa-solid fa-heart text-sm sm:text-lg text-red-500"></i>';
+                showToast('Favorilere eklendi!', 'success');
+            }
+            await appwriteAccount.updatePrefs(window.userPrefs);
+            if(window.loadDashboardData) window.loadDashboardData();
+        };
+
+        // --- DASHBOARD ---
+        const DashboardModule = () => `
+            <div class="space-y-4 sm:space-y-6 pb-24 md:pb-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-apple-card dark:bg-apple-darkcard p-4 sm:p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm gap-2">
+                    <div><h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Analiz & Raporlama</h2><p class="text-xs sm:text-sm text-gray-500">Hesap performansınız</p></div>
+                </div>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="bg-apple-card dark:bg-apple-darkcard p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800">
+                        <p class="text-[9px] sm:text-xs font-bold text-gray-400 uppercase mb-1">Kayıt Tarihi</p>
+                        <h4 class="text-base sm:text-xl font-bold text-gray-900 dark:text-white" id="dash-date">...</h4>
+                    </div>
+                    <div class="bg-apple-card dark:bg-apple-darkcard p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800">
+                        <p class="text-[9px] sm:text-xs font-bold text-gray-400 uppercase mb-1">Açılan İlan</p>
+                        <h4 class="text-base sm:text-xl font-bold text-apple-blue" id="dash-listings">0</h4>
+                    </div>
+                    <div class="bg-apple-card dark:bg-apple-darkcard p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800">
+                        <p class="text-[9px] sm:text-xs font-bold text-gray-400 uppercase mb-1">Verilen Teklif</p>
+                        <h4 class="text-base sm:text-xl font-bold text-apple-emerald" id="dash-offers">0</h4>
+                    </div>
+                    <div class="bg-apple-card dark:bg-apple-darkcard p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800">
+                        <p class="text-[9px] sm:text-xs font-bold text-gray-400 uppercase mb-1">Favori İlan</p>
+                        <h4 class="text-base sm:text-xl font-bold text-red-500" id="dash-favs">0</h4>
+                    </div>
+                </div>
+                <div class="bg-apple-card dark:bg-apple-darkcard p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800">
+                    <h3 class="font-bold mb-3 sm:mb-4 text-gray-900 dark:text-white text-sm sm:text-base"><i class="fa-solid fa-heart text-red-500 mr-2"></i> Favori İlanlarınız</h3>
+                    <div id="fav-list" class="space-y-2">Yükleniyor...</div>
+                </div>
+            </div>
+        `;
+        window.loadDashboardData = async () => {
+            if(!window.currentUser || !document.getElementById('dash-date')) return;
+            const dateObj = new Date(window.currentUser.$createdAt);
+            document.getElementById('dash-date').innerText = dateObj.toLocaleDateString('tr-TR', { year: 'numeric', month: 'short', day: 'numeric' });
+            document.getElementById('dash-offers').innerText = window.userPrefs.offersMade;
+            document.getElementById('dash-favs').innerText = window.userPrefs.favorites.length;
+            document.getElementById('dash-listings').innerText = window.userPrefs.listingsCount || 0; 
+            
+            try {
+                const res = await databases.listDocuments(DB_ID, COLLECTION_ID);
+                const favList = document.getElementById('fav-list');
+                const favDocs = res.documents.filter(d => window.userPrefs.favorites.includes(d.$id));
+                if (favDocs.length === 0) { favList.innerHTML = '<p class="text-xs sm:text-sm text-gray-500">Henüz favoriye aldığınız ilan yok.</p>'; } 
+                else {
+                    favList.innerHTML = favDocs.map(d => `
+                        <div class="flex justify-between items-center bg-gray-50 dark:bg-black border border-gray-100 dark:border-gray-800 p-2 sm:p-3 rounded-lg sm:rounded-xl">
+                            <div class="overflow-hidden mr-2"><span class="text-[10px] sm:text-xs text-gray-400 font-mono">${d.code}</span><p class="font-bold text-xs sm:text-sm text-gray-900 dark:text-white truncate w-[150px] sm:w-[300px] cursor-pointer hover:text-apple-blue" onclick="openDrawer('${d.$id}', '${d.code}', '${d.product}', '${d.party}', '${d.volume}', '${d.stage}', '${d.fileId}')">${d.product}</p></div>
+                            <button onclick="toggleFavorite('${d.$id}'); loadDashboardData();" class="text-[10px] sm:text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg hover:underline font-bold transition-colors">Kaldır</button>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {}
+        };
+
+        // --- MARKETPLACE ---
+        const MarketplaceModule = () => `
+            <div class="space-y-4 sm:space-y-6 pb-24 md:pb-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-apple-card dark:bg-apple-darkcard p-4 sm:p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm gap-3 sm:gap-4">
+                    <div><h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">İlan Havuzu</h2><p class="text-xs sm:text-sm text-gray-500 mt-1">Küresel arz ve talep panosu</p></div>
+                    <button onclick="openNewDealModal()" class="w-full sm:w-auto px-4 py-2 sm:px-5 sm:py-2.5 bg-apple-blue text-white font-medium text-xs sm:text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition-colors"><i class="fa-solid fa-bullhorn"></i> İlan Ekle</button>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                    <div class="bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl sm:rounded-2xl border border-emerald-100 dark:border-emerald-800/30 p-3 sm:p-5">
+                        <h3 class="text-sm sm:text-lg font-bold text-emerald-700 dark:text-emerald-500 mb-3 sm:mb-4 border-b border-emerald-200 dark:border-emerald-800/50 pb-2 flex items-center gap-2"><i class="fa-solid fa-arrow-up-right-dots"></i> SATIŞ İLANLARI (ARZ)</h3>
+                        <div id="supply-grid" class="space-y-3 sm:space-y-4"></div>
+                    </div>
+                    <div class="bg-blue-50/50 dark:bg-blue-900/10 rounded-xl sm:rounded-2xl border border-blue-100 dark:border-blue-800/30 p-3 sm:p-5">
+                        <h3 class="text-sm sm:text-lg font-bold text-blue-700 dark:text-blue-500 mb-3 sm:mb-4 border-b border-blue-200 dark:border-blue-800/50 pb-2 flex items-center gap-2"><i class="fa-solid fa-arrow-down-long"></i> ALIM İLANLARI (TALEP)</h3>
+                        <div id="demand-grid" class="space-y-3 sm:space-y-4"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        window.loadMarketplace = async () => {
+            const sg = document.getElementById('supply-grid'); const dg = document.getElementById('demand-grid');
+            if(!sg || !dg) return;
+            sg.innerHTML = dg.innerHTML = '<p class="text-xs sm:text-sm text-gray-500">Yükleniyor...</p>';
+            try {
+                const res = await databases.listDocuments(DB_ID, COLLECTION_ID);
+                const supplies = res.documents.filter(d => d.stage && d.stage.includes('SATIŞ'));
+                const demands = res.documents.filter(d => d.stage && d.stage.includes('ALIM'));
+                const allOffers = res.documents.filter(d => d.stage === 'GELEN TEKLİF');
+
+                const createCard = (d, isSupply) => {
+                    const isFav = window.userPrefs.favorites.includes(d.$id);
+                    const offerCount = allOffers.filter(o => o.code === d.code).length;
+                    const offerBadge = offerCount > 0 ? `<span class="bg-amber-100 text-amber-700 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-md ml-2 border border-amber-200 shadow-sm"><i class="fa-solid fa-bell"></i> ${offerCount} Teklif</span>` : '';
+
+                    return `
+                    <div class="bg-white dark:bg-apple-darkcard p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col gap-2 sm:gap-3 transition-transform hover:scale-[1.01]">
+                        <div class="flex justify-between items-start">
+                            <div class="overflow-hidden pr-2">
+                                <div class="flex items-center mb-1">
+                                    <span class="text-[9px] sm:text-[10px] text-gray-400 font-mono">${d.code}</span>
+                                    ${offerBadge}
+                                </div>
+                                <h4 class="font-bold text-sm sm:text-base text-gray-900 dark:text-white cursor-pointer hover:text-apple-blue truncate w-full" onclick="openDrawer('${d.$id}', '${d.code}', '${d.product}', '${d.party}', '${d.volume}', '${d.stage}', '${d.fileId}')">${d.product}</h4>
+                            </div>
+                            <span class="font-bold text-xs sm:text-sm whitespace-nowrap ${isSupply ? 'text-emerald-600' : 'text-blue-600'}">${d.volume}</span>
+                        </div>
+                        <div class="flex gap-2 mt-1 sm:mt-2 pt-2 sm:pt-3 border-t border-gray-100 dark:border-gray-800">
+                            <button onclick="toggleFavorite('${d.$id}', this)" class="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 transition-colors"><i class="fa-solid fa-heart text-sm sm:text-lg ${isFav ? 'text-red-500' : 'text-gray-400'}"></i></button>
+                            <button onclick="makeOffer('${d.code}')" class="flex-1 bg-gray-900 dark:bg-white text-white dark:text-black font-semibold text-[10px] sm:text-xs rounded-lg flex items-center justify-center gap-2 transition-transform active:scale-95"><i class="fa-solid fa-paper-plane"></i> Teklif İlet</button>
+                        </div>
+                    </div>`;
+                };
+                sg.innerHTML = supplies.length ? supplies.map(d => createCard(d, true)).join('') : '<p class="text-xs sm:text-sm text-gray-500">Aktif satış ilanı yok.</p>';
+                dg.innerHTML = demands.length ? demands.map(d => createCard(d, false)).join('') : '<p class="text-xs sm:text-sm text-gray-500">Aktif alım talebi yok.</p>';
+            } catch(e) {}
+        };
+
+        // --- PIPELINE ---
+        const PipelineModule = () => `
+            <div class="space-y-4 sm:space-y-6 h-full flex flex-col pb-24 md:pb-6">
+                <div class="bg-apple-card dark:bg-apple-darkcard p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm"><h2 class="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">İş Akışı & Teklifler</h2></div>
+                <div class="bg-apple-card dark:bg-apple-darkcard rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden flex-1 flex flex-col">
+                    <div class="px-3 sm:px-5 py-2 sm:py-3 border-b flex justify-between items-center bg-gray-50 dark:bg-gray-900/50"><h2 class="text-[10px] sm:text-xs font-bold uppercase text-gray-500">Gelen Teklifler ve Aktif İlanlarınız</h2></div>
+                    <div class="overflow-x-auto custom-scrollbar flex-1"><table class="w-full text-left whitespace-nowrap"><tbody id="dealsTableBody" class="divide-y divide-gray-100 dark:divide-gray-800 text-[10px] sm:text-xs"></tbody></table></div>
+                </div>
+            </div>
+        `;
+        window.loadPipeline = async () => {
+            const tbody = document.getElementById('dealsTableBody');
+            if(!tbody) return;
+            
+            tbody.innerHTML = '<tr><td class="p-4 sm:p-6 text-center text-gray-400">Veriler taranıyor...</td></tr>';
+            try {
+                const res = await databases.listDocuments(DB_ID, COLLECTION_ID);
+                const myId = window.userPrefs.tradeflowId;
+                
+                let myDealsAndOffers = res.documents.filter(d => {
+                    if (window.currentRole === 'supervisor') return true;
+                    if (d.code && d.code.startsWith(myId)) return true;
+                    return false;
+                });
+
+                if(myDealsAndOffers.length === 0) {
+                    tbody.innerHTML = `<tr><td class="p-6 sm:p-10 text-center text-gray-500"><i class="fa-solid fa-folder-open text-3xl sm:text-4xl mb-2 sm:mb-3 text-gray-300 dark:text-gray-600"></i><p class="text-xs sm:text-sm font-semibold">Aktif İşlem veya Teklif Yok</p></td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = myDealsAndOffers.map(d => {
+                    const isOffer = d.stage === "GELEN TEKLİF";
+                    return `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors ${isOffer ? 'bg-amber-50/30 dark:bg-amber-900/10' : ''}" onclick="openDrawer('${d.$id}', '${d.code}', '${d.product}', '${d.party}', '${d.volume}', '${d.stage}', '${d.fileId}')">
+                        <td class="p-3 sm:p-4 font-mono font-bold ${isOffer ? 'text-amber-600' : 'text-apple-blue'}">${d.code}</td>
+                        <td class="p-3 sm:p-4 font-medium text-gray-900 dark:text-white truncate max-w-[150px]">${d.product}</td>
+                        <td class="p-3 sm:p-4 text-gray-600 dark:text-gray-400 truncate max-w-[100px]"><i class="fa-solid ${isOffer ? 'fa-user-tag text-amber-500' : 'fa-building'}"></i> ${d.party}</td>
+                        <td class="p-3 sm:p-4"><span class="px-2 py-1 rounded-md text-[9px] font-bold uppercase ${isOffer ? 'bg-amber-100 text-amber-700' : 'bg-blue-50 text-apple-blue'}">${d.stage}</span></td>
+                        <td class="p-3 sm:p-4 text-right"><button onclick="event.stopPropagation(); deleteDeal('${d.$id}')" class="text-[10px] sm:text-xs text-red-500 font-bold hover:underline"><i class="fa-solid fa-trash"></i></button></td>
+                    </tr>`
+                }).join('');
+            } catch(e) {}
+        };
+
+        const routes = { 'dashboard': DashboardModule, 'marketplace': MarketplaceModule, 'pipeline': PipelineModule };
+        function renderModule(moduleName) {
+            window.closeDrawer();
+            const el = document.getElementById('app-content');
+            if(!el) return;
+            el.innerHTML = routes[moduleName]();
+            if (moduleName === 'marketplace') setTimeout(window.loadMarketplace, 50);
+            if (moduleName === 'pipeline') setTimeout(window.loadPipeline, 50);
+            if (moduleName === 'dashboard') setTimeout(window.loadDashboardData, 50);
+        }
+
+        document.querySelectorAll('.sidebar-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetMod = e.currentTarget.getAttribute('data-target');
+                document.querySelectorAll('aside .sidebar-link').forEach(l => { 
+                    l.classList.remove('active', 'bg-apple-blue', 'text-white'); 
+                    l.classList.add('text-gray-600', 'dark:text-gray-400'); 
+                });
+                const dTarget = document.querySelector(`aside .sidebar-link[data-target="${targetMod}"]`);
+                if(dTarget) { dTarget.classList.add('active', 'bg-apple-blue', 'text-white'); dTarget.classList.remove('text-gray-600', 'dark:text-gray-400'); }
+
+                document.querySelectorAll('nav.md\\:hidden .sidebar-link').forEach(l => {
+                    l.classList.remove('active', 'text-apple-blue');
+                    l.classList.add('text-gray-500');
+                });
+                const mTarget = document.querySelector(`nav.md\\:hidden .sidebar-link[data-target="${targetMod}"]`);
+                if(mTarget) { mTarget.classList.add('active', 'text-apple-blue'); mTarget.classList.remove('text-gray-500'); }
+
+                renderModule(targetMod);
+            });
+        });
+
+        // DRAWER YÖNETİMİ
+        window.openDrawer = (docId, code, product, party, volume, stage, fileId) => {
+            window.currentSelectedDocId = docId;
+            window.currentSelectedFileId = fileId;
+
+            document.getElementById('drawerCode').innerText = code;
+            document.getElementById('drawerStageBadge').innerText = stage;
+            document.getElementById('drawerProduct').innerText = product;
+            document.getElementById('drawerParty').innerText = party;
+            document.getElementById('drawerVolume').innerText = volume;
+            
+            const actionsBox = document.getElementById('drawerActions');
+            actionsBox.innerHTML = ''; 
+
+            if (fileId && fileId !== "undefined" && fileId.trim() !== "") {
+                const url = storage.getFileView(BUCKET_ID, fileId);
+                actionsBox.innerHTML += `
+                    <a href="${url}" target="_blank" class="w-full flex justify-center items-center gap-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 text-gray-800 dark:text-gray-200 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold transition-colors">
+                        <i class="fa-solid fa-cloud-arrow-down"></i> Mevcut Resmi Belgeyi Aç
+                    </a>
+                `;
+            } else {
+                actionsBox.innerHTML += `
+                    <div class="w-full flex justify-center items-center gap-2 bg-gray-100 dark:bg-gray-800/50 text-gray-400 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold border border-dashed border-gray-300 dark:border-gray-700">
+                        <i class="fa-solid fa-file-circle-xmark"></i> Henüz Belge Yüklenmemiş
+                    </div>
+                `;
+            }
+
+            actionsBox.innerHTML += `
+                <button onclick="openLOIGenerator()" class="w-full flex justify-center items-center gap-2 bg-apple-blue hover:bg-blue-600 text-white py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-colors shadow-md mt-2">
+                    <i class="fa-solid fa-file-invoice"></i> PDF Belge Üret
+                </button>
+            `;
+            
+            if (window.currentRole === 'supervisor') {
+                actionsBox.innerHTML += `
+                    <button onclick="openDocEditor()" class="w-full flex justify-center items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-colors shadow-md mt-2">
+                        <i class="fa-solid fa-pen-to-square"></i> İnteraktif Evrak Düzenleyici
+                    </button>
+                `;
+            }
+
+            document.getElementById('dealDrawer').classList.remove('drawer-closed');
+            document.getElementById('dealDrawer').classList.add('drawer-open');
+        };
+        window.closeDrawer = () => { 
+            document.getElementById('dealDrawer').classList.remove('drawer-open'); 
+            document.getElementById('dealDrawer').classList.add('drawer-closed'); 
+        };
+
+        // --- İNTERAKTİF DOKÜMAN EDİTÖRÜ ---
+        window.openDocEditor = () => {
+            const code = document.getElementById('drawerCode').innerText;
+            const product = document.getElementById('drawerProduct').innerText;
+            const party = document.getElementById('drawerParty').innerText;
+            const volume = document.getElementById('drawerVolume').innerText;
+            const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            
+            document.getElementById('editorDocType').value = "LOI";
+            const editor = document.getElementById('a4-document');
+            
+            editor.innerHTML = `
+                <div style="text-align:center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+                    <h1 style="margin:0; font-size:24px; text-transform:uppercase;">GLOBAL TRADE LLC (ÖRNEK FİRMA)</h1>
+                    <p style="margin:0; font-size:12px;">Maslak Mah. Büyükdere Cad. No:1, İstanbul</p>
+                    <p style="margin:0; font-size:12px;">Email: info@firma.com | Tel: +90 555 123 45 67</p>
+                </div>
+                <p><strong>Ref:</strong> LOI-${code}<br><strong>Date:</strong> ${dateStr}</p>
+                <div id="docEditTitle" style="text-align:center; font-weight:bold; text-decoration:underline; margin: 30px 0; font-size:18px;">LETTER OF INTENT (LOI)</div>
+                <p>We, <strong>Global Trade LLC</strong>, acting with full corporate and legal responsibility, hereby issue this formal and irrevocable Letter of Intent (LOI) to purchase the following specified commodity subject to mutually agreed terms, successful contract execution, and standard international verification procedures.</p>
+                
+                <table>
+                    <tr><th>COMMODITY</th><td>${product}</td></tr>
+                    <tr><th>TARGET PARTY</th><td>${party}</td></tr>
+                    <tr><th>QUANTITY</th><td>${volume}</td></tr>
+                    <tr><th>DELIVERY TERMS</th><td>FOB Supplier's Nominated Export Port / CIF Turkey (Incoterms® 2020)</td></tr>
+                    <tr><th>PAYMENT INSTRUMENT</th><td>100% Irrevocable Documentary Letter of Credit (DLC/SBLC), MT103 at sight.</td></tr>
+                    <tr><th>INSPECTION</th><td>SGS / Saybolt / Intertek at loading port for quantity and quality.</td></tr>
+                </table>
+                
+                <h3 style="margin-top: 30px; font-size: 16px;">TRANSACTION PROCEDURES</h3>
+                <ol style="font-size: 14px;">
+                    <li>Buyer issues this official Letter of Intent (LOI).</li>
+                    <li>Seller reviews and issues a formal Full Corporate Offer (FCO).</li>
+                    <li>Buyer accepts FCO and issues Irrevocable Corporate Purchase Order (ICPO).</li>
+                    <li>Seller issues Draft Sales & Purchase Agreement (SPA) for mutual review.</li>
+                    <li>Buyer and Seller banks exchange required financial instruments and proof of product (POP).</li>
+                </ol>
+                
+                <div style="margin-top: 50px;">
+                    <p><strong>AUTHORIZED SIGNATORY</strong></p>
+                    <p>John Doe (CEO)<br>Global Trade LLC</p>
+                </div>
+            `;
+            document.getElementById('interactive-doc-editor').classList.remove('hidden');
+        };
+
+        window.closeDocEditor = () => { document.getElementById('interactive-doc-editor').classList.add('hidden'); };
+        window.changeDocTemplate = () => {
+            const type = document.getElementById('editorDocType').value;
+            const titleEl = document.getElementById('docEditTitle');
+            if(!titleEl) return;
+            if(type === 'LOI') titleEl.innerText = "LETTER OF INTENT (LOI)";
+            else if(type === 'SCO') titleEl.innerText = "SOFT CORPORATE OFFER (SCO)";
+            else if(type === 'FCO') titleEl.innerText = "FULL CORPORATE OFFER (FCO)";
+        };
+
+        window.saveDocumentToCloud = async () => {
+            const btn = document.getElementById('btnSaveToCloud');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...`;
+            btn.disabled = true;
+
+            const element = document.getElementById('a4-document');
+            const code = document.getElementById('drawerCode').innerText;
+
+            try {
+                const opt = { margin: 0, filename: `${code}-Doc.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+                const pdfBlob = await html2pdf().set(opt).from(element).outputPdf('blob');
+                
+                const file = new File([pdfBlob], `${code}-Belge.pdf`, { type: "application/pdf" });
+                
+                const rowPermissions = [
+                    Permission.read(Role.any()),
+                    Permission.update(Role.user(window.currentUser.$id)),
+                    Permission.delete(Role.user(window.currentUser.$id))
+                ];
+
+                const uploadedFile = await storage.createFile(BUCKET_ID, ID.unique(), file, rowPermissions);
+                
+                await databases.updateDocument(DB_ID, COLLECTION_ID, window.currentSelectedDocId, {
+                    fileId: uploadedFile.$id,
+                    stage: "LOI & FCO" 
+                });
+
+                showToast('Evrak buluta kaydedildi!', 'success');
+                closeDocEditor();
+                if(window.loadPipeline) window.loadPipeline();
+                if(window.loadMarketplace) window.loadMarketplace();
+                closeDrawer(); 
+            } catch (error) { showToast('Hata: ' + error.message, 'error'); } finally { btn.innerHTML = originalHtml; btn.disabled = false; }
+        };
+
+        // YENİ LOI ÜRETİCİ MODALI VE MANTIĞI
+        window.openLOIGenerator = () => {
+            document.getElementById('loiSignatoryName').value = window.currentUser ? window.currentUser.name : "";
+            document.getElementById('loi-generator-modal').classList.remove('hidden');
+        };
+        
+        window.closeLOIGenerator = () => { document.getElementById('loi-generator-modal').classList.add('hidden'); };
+
+        window.generateAndPrintLOI = (e) => {
+            e.preventDefault();
+            const compName = document.getElementById('loiCompanyName').value;
+            const compAddress = document.getElementById('loiCompanyAddress').value;
+            const email = document.getElementById('loiEmail').value;
+            const phone = document.getElementById('loiPhone').value;
+            const signatoryName = document.getElementById('loiSignatoryName').value;
+            const signatoryTitle = document.getElementById('loiSignatoryTitle').value;
+
+            const product = document.getElementById('drawerProduct').innerText;
+            const party = document.getElementById('drawerParty').innerText;
+            const volume = document.getElementById('drawerVolume').innerText;
+            const code = document.getElementById('drawerCode').innerText;
+            const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            const htmlContent = `
+            <html><head><title>LOI - ${code}</title>
+            <style>
+                body { font-family: 'Times New Roman', Times, serif; padding: 40px; color: #000; line-height: 1.6; }
+                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+                .header h1 { margin: 0; font-size: 24px; color: #1a365d; text-transform: uppercase; }
+                .header p { margin: 2px 0; font-size: 12px; white-space: pre-wrap; }
+                .title { text-align: center; font-weight: bold; text-decoration: underline; margin: 30px 0; font-size: 18px; }
+                table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                th, td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 14px; }
+                th { background-color: #f3f4f6; width: 30%; }
+                .footer { margin-top: 50px; }
+            </style>
+            </head><body>
+                <div class="header">
+                    <h1>${compName}</h1>
+                    <p>${compAddress}</p>
+                    <p>E-posta: ${email} | Tel: ${phone}</p>
+                </div>
+                <p><strong>Ref:</strong> LOI-${code}<br><strong>Date:</strong> ${dateStr}</p>
+                <div class="title">LETTER OF INTENT (LOI)</div>
+                <p>We, <strong>${compName}</strong>, acting with full corporate and legal responsibility, hereby issue this formal and irrevocable Letter of Intent (LOI) to purchase the following specified commodity subject to mutually agreed terms, successful contract execution, and standard international verification procedures.</p>
+                
+                <table>
+                    <tr><th>COMMODITY</th><td>${product}</td></tr>
+                    <tr><th>TARGET PARTY</th><td>${party}</td></tr>
+                    <tr><th>QUANTITY</th><td>${volume}</td></tr>
+                    <tr><th>DELIVERY TERMS</th><td>FOB Supplier's Nominated Export Port / CIF Turkey (Incoterms® 2020)</td></tr>
+                    <tr><th>PAYMENT INSTRUMENT</th><td>100% Irrevocable Documentary Letter of Credit (DLC/SBLC), payable 100% at sight.</td></tr>
+                    <tr><th>INSPECTION</th><td>SGS / Saybolt / Intertek at loading port for quantity and quality verification at Seller's cost.</td></tr>
+                </table>
+                
+                <h3 style="margin-top: 30px; font-size: 16px;">TRANSACTION PROCEDURES</h3>
+                <ol style="font-size: 14px;">
+                    <li>Buyer issues this official Letter of Intent (LOI) along with authorized corporate credentials.</li>
+                    <li>Seller reviews and issues a formal Full Corporate Offer (FCO) with complete commercial terms and banking coordinates.</li>
+                    <li>Buyer accepts FCO and issues Irrevocable Corporate Purchase Order (ICPO) with full banking details.</li>
+                    <li>Seller issues Draft Sales & Purchase Agreement (SPA) for mutual review, amendments, and execution.</li>
+                    <li>Buyer and Seller banks exchange required financial instruments and proof of product (POP) as stipulated in the SPA.</li>
+                </ol>
+                
+                <div class="footer">
+                    <p><strong>AUTHORIZED SIGNATORY</strong></p>
+                    <p>${signatoryName} (${signatoryTitle})<br>${compName}</p>
+                </div>
+                <script>window.print();<\/script>
+            </body></html>`;
+
+            const printWin = window.open('', '_blank');
+            printWin.document.write(htmlContent);
+            printWin.document.close();
+            closeLOIGenerator();
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            checkCurrentSession();
+            initRealtimeSubscription();
+        });
+    </script>
+</body>
+</html>
